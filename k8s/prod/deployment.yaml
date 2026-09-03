@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: svc-notifications
+  namespace: planara
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: svc-notifications
+  template:
+    metadata:
+      labels:
+        app: svc-notifications
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+
+      containers:
+        - name: svc-notifications
+          image: ghcr.io/planara/planara-notifications:latest
+          args:
+            - --migrate
+
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: management
+              containerPort: 8081
+
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Production"
+
+            - name: PGDATABASE
+              value: "notifications"
+
+            - name: DbConnections__Postgres__ConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: planara-common-secrets
+                  key: DbConnections__Postgres__ConnectionString
+
+            - name: DbConnections__Redis__ConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: planara-common-secrets
+                  key: DbConnections__Redis__ConnectionString
+
+            - name: Kafka__BootstrapServers
+              valueFrom:
+                secretKeyRef:
+                  name: planara-common-secrets
+                  key: Kafka__BootstrapServers
+
+            - name: Kafka__ConsumerTopics__EmailConfirmation
+              value: "EmailConfirmation"
+
+            - name: Kafka__ConsumerGroupId
+              value: "svc-notifications"
+
+            - name: Email__FromAddress
+                valueFrom:
+                  secretKeyRef:
+                    name: planara-notifications-secrets
+                    key: Email__FromAddress
+
+            - name: Email__Username
+              valueFrom:
+                secretKeyRef:
+                  name: planara-notifications-secrets
+                  key: Email__Username
+
+            - name: Email__Password
+              valueFrom:
+                secretKeyRef:
+                  name: planara-notifications-secrets
+                  key: Email__Password
+
+            - name: Email__SmtpServer
+              value: "smtp.yandex.com"
+
+            - name: Email__Port
+              value: "465"
+
+            - name: Email__EnableSsl
+              value: "true"
+
+            - name: Email__TemplatesPath
+              value: "templates"
+
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 12
+
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 6
