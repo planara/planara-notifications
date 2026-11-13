@@ -62,10 +62,13 @@ spec:
               value: "svc-notifications"
 
             - name: Email__FromAddress
-                valueFrom:
-                  secretKeyRef:
-                    name: planara-notifications-secrets
-                    key: Email__FromAddress
+              valueFrom:
+                secretKeyRef:
+                  name: planara-notifications-secrets
+                  key: Email__FromAddress
+
+            - name: Email__FromName
+              value: "Planara"
 
             - name: Email__Username
               valueFrom:
